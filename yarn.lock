@@ -57,12 +57,12 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@rbxts/compiler-types@^1.2.7-types.1":
-  version "1.2.7-types.1"
-  resolved "https://registry.yarnpkg.com/@rbxts/compiler-types/-/compiler-types-1.2.7-types.1.tgz#35986d7b7d05621612b20ec0c42f63b4a1de8749"
-  integrity sha512-zr3QIJDgLN2dyPYSy4QwDRiZDm8BwQeUE8tsglPDgbVLJonaK7+PAqb1hoqZJ3ReQdZUElSKru9yAfI1Z0MOug==
+"@rbxts/compiler-types@^2.0.4-types.0":
+  version "2.0.4-types.0"
+  resolved "https://registry.yarnpkg.com/@rbxts/compiler-types/-/compiler-types-2.0.4-types.0.tgz#355a81892168118432a743dd1cdd349c4bc2abe9"
+  integrity sha512-kRdXA7RzIUnLrQhjvVLQ//9Nwfndlui43Frqg3k8xrPVz+QJNIqzwx6LHLSwq4c1OBZpYcGgUWIQJkuKxwlskA==
 
-"@rbxts/types@^1.0.553":
+"@rbxts/types@^1.0.642":
   version "1.0.642"
   resolved "https://registry.yarnpkg.com/@rbxts/types/-/types-1.0.642.tgz#7450d528c55d6f7bf647310cb437cd24331d56dc"
   integrity sha512-pLQWRLQN5Mp4SGuLAobiHpeKqx2Q9K6ZQJliZowDYAHvBJRHE5t0dO1W7GlAPPn0JoEMZXH3lf9y92DCFrYGiw==
@@ -77,7 +77,7 @@
   resolved "https://registry.yarnpkg.com/@types/node/-/node-16.11.65.tgz#59500b86af757d6fcabd3dec32fecb6e357d7a45"
   integrity sha512-Vfz7wGMOr4jbQGiQHVJm8VjeQwM9Ya7mHe9LtQ264/Epf5n1KiZShOFqk++nBzw6a/ubgYdB9Od7P+MH/LjoWw==
 
-"@typescript-eslint/eslint-plugin@^5.4.0":
+"@typescript-eslint/eslint-plugin@^5.40.0":
   version "5.40.0"
   resolved "https://registry.yarnpkg.com/@typescript-eslint/eslint-plugin/-/eslint-plugin-5.40.0.tgz#0159bb71410eec563968288a17bd4478cdb685bd"
   integrity sha512-FIBZgS3DVJgqPwJzvZTuH4HNsZhHMa9SjxTKAZTlMsPw/UzpEjcf9f4dfgDJEHjK+HboUJo123Eshl6niwEm/Q==
@@ -98,7 +98,7 @@
   dependencies:
     "@typescript-eslint/utils" "5.40.0"
 
-"@typescript-eslint/parser@^5.4.0":
+"@typescript-eslint/parser@^5.40.0":
   version "5.40.0"
   resolved "https://registry.yarnpkg.com/@typescript-eslint/parser/-/parser-5.40.0.tgz#432bddc1fe9154945660f67c1ba6d44de5014840"
   integrity sha512-Ah5gqyX2ySkiuYeOIDg7ap51/b63QgWZA7w6AHtFrag7aH0lRQPbLzUjk0c9o5/KZ6JRkTTDKShL4AUrQa6/hw==
@@ -297,22 +297,22 @@ escape-string-regexp@^4.0.0:
   resolved "https://registry.yarnpkg.com/escape-string-regexp/-/escape-string-regexp-4.0.0.tgz#14ba83a5d373e3d311e5afca29cf5bfad965bf34"
   integrity sha512-TtpcNJ3XAzx3Gq8sWRzJaVajRs0uVxA2YAkdb1jm2YkPz4G6egUFAyA3n5vtEIZefPk5Wa4UXbKuS5fKkJWdgA==
 
-eslint-config-prettier@^8.3.0:
+eslint-config-prettier@^8.5.0:
   version "8.5.0"
   resolved "https://registry.yarnpkg.com/eslint-config-prettier/-/eslint-config-prettier-8.5.0.tgz#5a81680ec934beca02c7b1a61cf8ca34b66feab1"
   integrity sha512-obmWKLUNCnhtQRKc+tmnYuQl0pFU1ibYJQ5BGhTVB08bHe9wC8qUeG7c08dj9XX+AuPj1YSGSQIHl1pnDHZR0Q==
 
-eslint-plugin-prettier@^4.0.0:
+eslint-plugin-prettier@^4.2.1:
   version "4.2.1"
   resolved "https://registry.yarnpkg.com/eslint-plugin-prettier/-/eslint-plugin-prettier-4.2.1.tgz#651cbb88b1dab98bfd42f017a12fa6b2d993f94b"
   integrity sha512-f/0rXLXUt0oFYs8ra4w49wYZBG5GKZpAYsJSm6rnYL5uVDjd+zowwMwVZHnAjf4edNrKpCDYfXDgmRE/Ak7QyQ==
   dependencies:
     prettier-linter-helpers "^1.0.0"
 
-eslint-plugin-roblox-ts@0.0.32:
-  version "0.0.32"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-roblox-ts/-/eslint-plugin-roblox-ts-0.0.32.tgz#f0f858c7d9015140fd80e17a01c9d5d8ff819b29"
-  integrity sha512-zbwahPiQha5KGwY/J3pVXtyR4ORBSP8qouc4DGfnyGcdz0HOFFu+sACWX2u7/c4HVymtZlKRkTL4uR5qZ+THgg==
+eslint-plugin-roblox-ts@^0.0.34:
+  version "0.0.34"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-roblox-ts/-/eslint-plugin-roblox-ts-0.0.34.tgz#d81baea736a3081fe36b7b209245efb31e3c467b"
+  integrity sha512-CtHq01QT7lpewce5esmE6EwcdcfBShl0B+Y2tyqB3FLFJhqj0911cSFPCk9Ig0aEpOQui5UPw/avqbjigtSUDg==
   dependencies:
     "@types/node" "^16.10.4"
     "@typescript-eslint/experimental-utils" "^5.0.0"
@@ -351,7 +351,7 @@ eslint-visitor-keys@^3.3.0:
   resolved "https://registry.yarnpkg.com/eslint-visitor-keys/-/eslint-visitor-keys-3.3.0.tgz#f6480fa6b1f30efe2d1968aa8ac745b862469826"
   integrity sha512-mQ+suqKJVyeuwGYHAdjMFqjCyfl8+Ldnxuyp3ldiMBFKkvytrXUZWaiPCEav8qDHKty44bD+qV1IP4T+w+xXRA==
 
-eslint@^8.3.0:
+eslint@^8.25.0:
   version "8.25.0"
   resolved "https://registry.yarnpkg.com/eslint/-/eslint-8.25.0.tgz#00eb962f50962165d0c4ee3327708315eaa8058b"
   integrity sha512-DVlJOZ4Pn50zcKW5bYH7GQK/9MsoQG2d5eDH0ebEkE8PbgzTTmtt/VTH9GGJ4BfeZCpBLqFfvsjX35UacUL83A==
@@ -775,7 +775,7 @@ prettier-linter-helpers@^1.0.0:
   dependencies:
     fast-diff "^1.1.2"
 
-prettier@^2.5.0:
+prettier@^2.7.1:
   version "2.7.1"
   resolved "https://registry.yarnpkg.com/prettier/-/prettier-2.7.1.tgz#e235806850d057f97bb08368a4f7d899f7760c64"
   integrity sha512-ujppO+MkdPqoVINuDFDRLClm7D78qbDt0/NR+wp5FqEZOoTNAjPHWj17QRhu7geIHJfcNhRk1XVQmF8Bp3ye+g==
@@ -898,7 +898,7 @@ type-fest@^0.20.2:
   resolved "https://registry.yarnpkg.com/type-fest/-/type-fest-0.20.2.tgz#1bf207f4b28f91583666cb5fbd327887301cd5f4"
   integrity sha512-Ne+eE4r0/iWnpAxD852z3A+N0Bt5RN//NjJwRd2VFHEmrywxf5vsZlh4R6lixl6B+wz/8d+maTSAkN1FIkI3LQ==
 
-typescript@^4.4.4, typescript@^4.5.2:
+typescript@^4.4.4, typescript@^4.8.4:
   version "4.8.4"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.8.4.tgz#c464abca159669597be5f96b8943500b238e60e6"
   integrity sha512-QCh+85mCy+h0IGff8r5XWzOVSbBO+KfeYrMQh7NJ58QujwcE22u+NUSmUxqF+un70P9GXKxa2HCNiTTMJknyjQ==
