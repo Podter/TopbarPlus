@@ -167,7 +167,7 @@ declare interface Icon {
 	setBaseZIndex(zIndex: number, iconState?: IconState): Icon;
 
 	/** Determines the icons container size. By default `XOffset` and `YOffset` are `32`. */
-	setSize(xOffset: number, yOffset: number, iconState?: IconState): Icon;
+	setSize(xOffset: number, yOffset?: number, iconState?: IconState): Icon;
 
 	/**
 	 * Connects to an [icon event](https://1foreverhd.github.io/TopbarPlus/api/icon/#events) based upon the given ``iconEventName`` and call ``eventFunction`` with arguments ``(self, ...)`` when the event is triggered.
