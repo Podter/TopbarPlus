@@ -4,7 +4,8 @@
   "description": "roblox-ts port of Topbar+",
   "main": "out/init.lua",
   "scripts": {
-    "build": "rbxtsc --verbose"
+    "build": "rbxtsc --verbose",
+    "postinstall": "npm run build"
   },
   "repository": {
     "type": "git",
