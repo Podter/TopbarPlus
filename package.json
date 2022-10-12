@@ -1,6 +1,6 @@
 {
   "name": "@rbxts/topbar-plus",
-  "version": "2.9.0",
+  "version": "2.7.2",
   "description": "roblox-ts port of Topbar+",
   "main": "out/init.lua",
   "scripts": {

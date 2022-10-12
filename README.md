@@ -2,7 +2,7 @@
 
 This ia a Typescript port of [ForeverHD's Topbar+ module](https://github.com/1ForeverHD/TopbarPlus).
 
-Upgrade to v2.9.0 by Podter
+Upgrade to v2.7.2 by Podter
 
 This port does change some usage of the module, so the official documentation may not work 1:1.
 
