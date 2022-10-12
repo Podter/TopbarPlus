@@ -2,7 +2,7 @@
 [themes]: https://1foreverhd.github.io/TopbarPlus/features/#themes
 [set method]: https://1foreverhd.github.io/TopbarPlus/api/icon/#set
 
-## Construtors
+## Constructors
 
 #### new
 ```lua
@@ -571,21 +571,27 @@ The position the icon is at or aims to move to.
 
 -- LOCAL
 local tweenService = game:GetService("TweenService")
-local replicatedStorage = game:GetService("ReplicatedStorage")
 local debris = game:GetService("Debris")
 local userInputService = game:GetService("UserInputService")
 local httpService = game:GetService("HttpService") -- This is to generate GUIDs
 local runService = game:GetService("RunService")
 local textService = game:GetService("TextService")
-local guiService = game:GetService("GuiService")
 local starterGui = game:GetService("StarterGui")
-local players = game:GetService("Players")
+local TopbarPlusReference = require(script.TopbarPlusReference)
+local referenceObject = TopbarPlusReference.getObject()
+local leadPackage = referenceObject and referenceObject.Value
+if leadPackage and leadPackage ~= script then
+	return require(leadPackage)
+end
+if not referenceObject then
+    TopbarPlusReference.addToReplicatedStorage()
+end
+local Icon = {}
+Icon.__index = Icon
 local IconController = require(script.IconController)
 local Signal = require(script.Signal)
 local Maid = require(script.Maid)
 local TopbarPlusGui = require(script.TopbarPlusGui)
-local TopbarPlusReference = require(script.TopbarPlusReference)
-local referenceObject = TopbarPlusReference.getObject()
 local Themes = require(script.Themes)
 local activeItems = TopbarPlusGui.ActiveItems
 local topbarContainer = TopbarPlusGui.TopbarContainer
@@ -593,11 +599,6 @@ local iconTemplate = topbarContainer["IconContainer"]
 local DEFAULT_THEME = Themes.Default
 local THUMB_OFFSET = 55
 local DEFAULT_FORCED_GROUP_VALUES = {}
-local Icon = (referenceObject and require(referenceObject.Value)) or {}
-Icon.__index = Icon
-if not referenceObject then
-	TopbarPlusReference.addToReplicatedStorage()
-end
 
 
 
@@ -976,10 +977,17 @@ function Icon.new()
 
 	-- Input handlers
 	-- Calls deselect/select when the icon is clicked
-	instances.iconButton.MouseButton1Click:Connect(function()
+	--[[instances.iconButton.MouseButton1Click:Connect(function()
 		if self._draggingFinger then
 			return false
 		elseif self.isSelected then
+			self:deselect()
+			return true
+		end
+		self:select()
+	end)--]]
+	instances.iconButton.MouseButton1Click:Connect(function()
+		if self.isSelected then
 			self:deselect()
 			return true
 		end
@@ -1312,6 +1320,20 @@ function Icon:set(settingName, value, iconState, setAdditional)
 	return self
 end
 
+function Icon:setAdditionalValue(settingName, setAdditional, value, iconState)
+	local settingDetail = self._settingsDictionary[settingName]
+	assert(settingDetail ~= nil, ("setting '%s' does not exist"):format(settingName))
+	local stringMatch = setAdditional.."_"
+	if iconState then
+		stringMatch = stringMatch..iconState
+	end
+	for key, _ in pairs(settingDetail.additionalValues) do
+		if string.match(key, stringMatch) then
+			settingDetail.additionalValues[key] = value
+		end
+	end
+end
+
 function Icon:get(settingName, iconState, getAdditional)
 	local settingDetail = self._settingsDictionary[settingName]
 	assert(settingDetail ~= nil, ("setting '%s' does not exist"):format(settingName))
@@ -1376,7 +1398,7 @@ function Icon:_update(settingName, toggleState, customTweenInfo)
 		value = settingDetail.hoveringValue
 	end
 	if value == nil then return end
-	local tweenInfo = customTweenInfo or (settingDetail.tweenAction and self:get(settingDetail.tweenAction)) or self:get("toggleTransitionInfo") or TweenInfo.new(0.15)
+	local tweenInfo = customTweenInfo or (settingDetail.tweenAction and settingDetail.tweenAction ~= "" and self:get(settingDetail.tweenAction)) or self:get("toggleTransitionInfo") or TweenInfo.new(0.15)
 	local propertyName = settingDetail.propertyName
 	local invalidPropertiesTypes = {
 		["string"] = true,
@@ -1450,6 +1472,11 @@ function Icon:setTheme(theme, updateAfterSettingAll)
 		else
 			for settingName, settingValue in pairs(settingsDetails) do
 				if not self.lockedSettings[settingName] then
+					local settingDetail = self._settingsDictionary[settingName]
+					if settingsType == "action" and settingDetail == nil then
+						settingDetail = {}
+						self._settingsDictionary[settingName] = {}
+					end
 					self:set(settingName, settingValue)
 				end
 			end
@@ -1694,6 +1721,9 @@ function Icon:setMid(iconState)
 end
 
 function Icon:setRight(iconState)
+	if not self.internalIcon then
+		IconController.setupHealthbar()
+	end
 	return self:set("alignment", "right", iconState)
 end
 
@@ -1761,6 +1791,11 @@ function Icon:_updateIconSize(_, iconState)
 	local iconContainer = self.instances.iconContainer
 	if not iconContainer.Parent then return end
 
+	-- This converts richtext (e.g. "<b>Shop</b>") to normal text (e.g. "Shop")
+	-- This is important when calculating the size of the label/box for instance
+	self.instances.iconButton.Text = values.iconText
+	local iconTextContent = self.instances.iconButton.ContentText
+	
 	-- We calculate the cells dimensions as apposed to reading because there's a possibility the cells dimensions were changed at the exact time and have not yet updated
 	-- this essentially saves us from waiting a heartbeat which causes additonal complications
 	local cellSizeXOffset = values.iconSize.X.Offset
@@ -1772,7 +1807,7 @@ function Icon:_updateIconSize(_, iconState)
 	local cellSizeYScale = values.iconSize.Y.Scale
 	local cellHeight = cellSizeYOffset + (cellSizeYScale * iconContainer.Parent.AbsoluteSize.Y)
 	local labelHeight = cellHeight * values.iconLabelYScale
-	local labelWidth = textService:GetTextSize(values.iconText, labelHeight, values.iconFont, Vector2.new(10000, labelHeight)).X
+	local labelWidth = textService:GetTextSize(iconTextContent, labelHeight, values.iconFont, Vector2.new(10000, labelHeight)).X
 	local imageWidth = cellHeight * values.iconImageYScale * values.iconImageRatio
 	
 	local usingImage = values.iconImage ~= ""
@@ -1818,6 +1853,21 @@ function Icon:_updateIconSize(_, iconState)
 			local widthScale = (cellSizeXScale > 0 and cellSizeXScale) or 0
 			local widthOffset = (cellSizeXScale > 0 and 0) or math.clamp(desiredCellWidth, minCellWidth, maxCellWidth)
 			self:set("iconSize", UDim2.new(widthScale, widthOffset, values.iconSize.Y.Scale, values.iconSize.Y.Offset), iconState, "_ignorePrevious")
+
+			-- This ensures that if an icon is within a dropdown or menu, its container adapts accordingly with this new iconSize value
+			local parentIcon = self._parentIcon
+			if parentIcon then
+				local originalIconSize = UDim2.new(0, desiredCellWidth, 0, values.iconSize.Y.Offset)
+				if #parentIcon.dropdownIcons > 0 then
+					self:setAdditionalValue("iconSize", "beforeDropdown", originalIconSize, iconState)
+					parentIcon:_updateDropdown()
+				end
+				if #parentIcon.menuIcons > 0 then
+					self:setAdditionalValue("iconSize", "beforeMenu", originalIconSize, iconState)
+					parentIcon:_updateMenu()
+				end
+			end
+
 			self._updatingIconSize = false
 		end
 	end
@@ -1910,9 +1960,13 @@ function Icon:give(userdata)
 		local returnValue = userdata(self)
 		if typeof(userdata) ~= "function" then
 			valueToGive = returnValue
+		else
+			valueToGive = nil
 		end
 	end
-	self._maid:give(valueToGive)
+	if valueToGive ~= nil then
+		self._maid:give(valueToGive)
+	end
 	return self
 end
 
@@ -1927,6 +1981,7 @@ function Icon:setTip(text)
 	self.instances.tipLabel.Text = realText
 	self.instances.tipFrame.Size = (isVisible and UDim2.new(0, textSize.X+6, 0, 20)) or UDim2.new(0, 0, 0, 0)
 	self.instances.tipFrame.Parent = (isVisible and activeItems) or self.instances.iconContainer
+	self._maid.tipFrame = self.instances.tipFrame
 	self.tipText = text
 	
 	local tipMaid = Maid.new()
@@ -2026,6 +2081,7 @@ function Icon:setCaption(text)
 	self.captionText = text
 	self.instances.captionLabel.Text = realText
 	self.instances.captionContainer.Parent = (isVisible and activeItems) or self.instances.iconContainer
+	self._maid.captionContainer = self.instances.captionContainer
 	self:_updateIconSize(nil, self:getIconState())
 	local captionMaid = Maid.new()
 	self._maid.captionMaid = captionMaid
@@ -2067,6 +2123,7 @@ function Icon:setCaption(text)
 		local cellSizeYScale = iconSize.Y.Scale
 		local iconContainer = self.instances.iconContainer
 		local captionContainer = self.instances.captionContainer
+		
 		if isVisible then
 			local cellHeight = cellSizeYOffset + (cellSizeYScale * iconContainer.Parent.AbsoluteSize.Y)
 			local captionLabel = self.instances.captionLabel
@@ -2156,7 +2213,9 @@ function Icon:join(parentIcon, featureName, dontUpdate)
 end
 
 function Icon:leave()
-	if self._destroyed then return end
+	if self._destroyed or self.instances.iconContainer.Parent == nil then
+		return
+	end
 	local settingsToReset = {"iconSize", "captionBlockerTransparency", "iconCornerRadius"}
 	local parentIcon = self._parentIcon
 	self.instances.iconContainer.Parent = topbarContainer

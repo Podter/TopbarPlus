@@ -79,6 +79,13 @@ local icon = IconController.getIcon(name)
 Returns the icon with the given name (or ``false`` if not found). If multiple icons have the same name, then one will be returned randomly.
 
 ----
+#### disableHealthbar
+```lua
+IconController.disableHealthbar(bool)
+```
+Hides the fake healthbar (if currently visible) and prevents it becoming visible again (which normally occurs when the player takes damage).
+
+----
 
 
 
@@ -142,15 +149,28 @@ local runService = game:GetService("RunService")
 local userInputService = game:GetService("UserInputService")
 local tweenService = game:GetService("TweenService")
 local players = game:GetService("Players")
+local VRService = game:GetService("VRService")
+local voiceChatService = game:GetService("VoiceChatService")
+local TopbarPlusReference = require(script.Parent.TopbarPlusReference)
+local referenceObject = TopbarPlusReference.getObject()
+local leadPackage = referenceObject and referenceObject.Value
+if leadPackage and leadPackage.IconController ~= script then
+	return require(leadPackage.IconController)
+end
+if not referenceObject then
+    TopbarPlusReference.addToReplicatedStorage()
+end
 local IconController = {}
-local replicatedStorage = game:GetService("ReplicatedStorage")
 local Signal = require(script.Parent.Signal)
 local TopbarPlusGui = require(script.Parent.TopbarPlusGui)
 local topbarIcons = {}
-local fakeChatName = "_FakeChat"
 local forceTopbarDisabled = false
 local menuOpen
 local topbarUpdating = false
+local cameraConnection
+local controllerMenuOverride
+local isStudio = runService:IsStudio()
+local isVoiceChatEnabled = false
 local STUPID_CONTROLLER_OFFSET = 32
 
 
@@ -171,7 +191,14 @@ local function checkTopbarEnabledAccountingForMimic()
 	return topbarEnabledAccountingForMimic
 end
 
-
+-- Add icons to an overflow if they overlap the screen bounds or other icons
+local function bindCamera()
+	if not workspace.CurrentCamera then return end
+	if cameraConnection and cameraConnection.Connected then
+		cameraConnection:Disconnect()
+	end
+	cameraConnection = workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(IconController.updateTopbar)
+end
 
 -- OFFSET HANDLERS
 local alignmentDetails = {}
@@ -179,8 +206,18 @@ alignmentDetails["left"] = {
 	startScale = 0,
 	getOffset = function()
 		local offset = 48 + IconController.leftOffset
-		if checkTopbarEnabled() and starterGui:GetCoreGuiEnabled("Chat") then
-			offset += 12 + 32
+		if checkTopbarEnabled() then
+			local chatEnabled = starterGui:GetCoreGuiEnabled("Chat")
+			if chatEnabled then
+				offset += 12 + 32
+			end
+			if isVoiceChatEnabled and not isStudio then
+				if chatEnabled then
+					offset += 67
+				else
+					offset += 43
+				end
+			end
 		end
 		return offset
 	end,
@@ -206,7 +243,7 @@ alignmentDetails["right"] = {
 	startScale = 1,
 	getOffset = function()
 		local offset = IconController.rightOffset
-		if checkTopbarEnabled() and (starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.PlayerList) or starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.Backpack) or starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.EmotesMenu)) then
+		if (checkTopbarEnabled() or VRService.VREnabled) and (starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.PlayerList) or starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.Backpack) or starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.EmotesMenu)) then
 			offset += 48
 		end
 		return offset
@@ -231,6 +268,7 @@ IconController.rightGap = 12
 IconController.leftOffset = 0
 IconController.rightOffset = 0
 IconController.mimicCoreGui = true
+IconController.healthbarDisabled = false
 
 
 
@@ -239,6 +277,7 @@ IconController.iconAdded = Signal.new()
 IconController.iconRemoved = Signal.new()
 IconController.controllerModeStarted = Signal.new()
 IconController.controllerModeEnded = Signal.new()
+IconController.healthbarDisabledSignal = Signal.new()
 
 
 
@@ -280,6 +319,7 @@ IconController.iconRemoved:Connect(function(icon)
 	IconController:_updateSelectionGroup()
 end)
 
+workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(bindCamera)
 
 
 -- METHODS
@@ -312,6 +352,12 @@ function IconController.getIcon(name)
 		end
 	end
 	return false
+end
+
+function IconController.disableHealthbar(bool)
+	local finalBool = (bool == nil or bool)
+	IconController.healthbarDisabled = finalBool
+	IconController.healthbarDisabledSignal:Fire(finalBool)
 end
 
 function IconController.canShowIconOnTopbar(icon)
@@ -630,6 +676,11 @@ function IconController.setTopbarEnabled(bool, forceBool)
 			if forceBool then
 				indicator.Visible = topbarEnabledAccountingForMimic
 			else
+				indicator.Active = false
+				if controllerMenuOverride and controllerMenuOverride.Connected then
+					controllerMenuOverride:Disconnect()
+				end
+				
 				if hapticService:IsVibrationSupported(Enum.UserInputType.Gamepad1) and hapticService:IsMotorSupported(Enum.UserInputType.Gamepad1,Enum.VibrationMotor.Small) then
 					hapticService:SetMotor(Enum.UserInputType.Gamepad1,Enum.VibrationMotor.Small,1)
 					delay(0.2,function()
@@ -683,8 +734,16 @@ function IconController.setTopbarEnabled(bool, forceBool)
 		else
 			if forceBool then
 				indicator.Visible = false
+			elseif topbarEnabledAccountingForMimic then
+				indicator.Visible = true
+				indicator.Active = true
+				controllerMenuOverride = indicator.InputBegan:Connect(function(input)
+					if input.UserInputType == Enum.UserInputType.MouseButton1 then
+						IconController.setTopbarEnabled(true,false)
+					end
+				end)
 			else
-				indicator.Visible = topbarEnabledAccountingForMimic
+				indicator.Visible = false
 			end
 			if not TopbarPlusGui.TopbarContainer.Visible then return end
 			guiService.AutoSelectGuiEnabled = true
@@ -824,6 +883,12 @@ function IconController._enableControllerMode(bool)
 		indicator.Image = "rbxassetid://5278151556"
 		indicator.Visible = checkTopbarEnabledAccountingForMimic()
 		indicator.Position = UDim2.new(0.5,0,0,5)
+		indicator.Active = true
+		controllerMenuOverride = indicator.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 then
+				IconController.setTopbarEnabled(true,false)
+			end
+		end)
 	else
 		TopbarPlusGui.TopbarContainer.Position = UDim2.new(0,0,0,0)
 		TopbarPlusGui.TopbarContainer.Visible = checkTopbarEnabledAccountingForMimic()
@@ -871,6 +936,140 @@ function IconController._enableControllerModeForIcon(icon, bool)
 	end
 end
 
+local createdFakeHealthbarIcon = false
+function IconController.setupHealthbar()
+
+	if createdFakeHealthbarIcon then
+		return
+	end
+	createdFakeHealthbarIcon = true
+
+	-- Create a fake healthbar icon to mimic the core health gui
+	task.defer(function()
+		runService.Heartbeat:Wait()
+		local Icon = require(script.Parent)
+
+		Icon.new()
+			:setProperty("internalIcon", true)
+			:setName("_FakeHealthbar")
+			:setRight()
+			:setOrder(-420)
+			:setSize(80, 32)
+			:lock()
+			:set("iconBackgroundTransparency", 1)
+			:give(function(icon)
+
+				local healthContainer = Instance.new("Frame")
+				healthContainer.Name = "HealthContainer"
+				healthContainer.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+				healthContainer.BorderSizePixel = 0
+				healthContainer.AnchorPoint = Vector2.new(0, 0.5)
+				healthContainer.Position = UDim2.new(0, 0, 0.5, 0)
+				healthContainer.Size = UDim2.new(1, 0, 0.2, 0)
+				healthContainer.Visible = true
+				healthContainer.ZIndex = 11
+				healthContainer.Parent = icon.instances.iconButton
+
+				local corner = Instance.new("UICorner")
+				corner.CornerRadius = UDim.new(1, 0)
+				corner.Parent = healthContainer
+
+				local healthFrame = healthContainer:Clone()
+				healthFrame.Name = "HealthFrame"
+				healthFrame.BackgroundColor3 = Color3.fromRGB(167, 167, 167)
+				healthFrame.BorderSizePixel = 0
+				healthFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+				healthFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+				healthFrame.Size = UDim2.new(1, -2, 1, -2)
+				healthFrame.Visible = true
+				healthFrame.ZIndex = 12
+				healthFrame.Parent = healthContainer
+
+				local healthBar = healthFrame:Clone()
+				healthBar.Name = "HealthBar"
+				healthBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+				healthBar.BorderSizePixel = 0
+				healthBar.AnchorPoint = Vector2.new(0, 0.5)
+				healthBar.Position = UDim2.new(0, 0, 0.5, 0)
+				healthBar.Size = UDim2.new(0.5, 0, 1, 0)
+				healthBar.Visible = true
+				healthBar.ZIndex = 13
+				healthBar.Parent = healthFrame
+
+				local START_HEALTHBAR_COLOR = Color3.fromRGB(27, 252, 107)
+				local MID_HEALTHBAR_COLOR = Color3.fromRGB(250, 235, 0)
+				local END_HEALTHBAR_COLOR = Color3.fromRGB(255, 28, 0)
+
+				local function powColor3(color, pow)
+					return Color3.new(
+						math.pow(color.R, pow),
+						math.pow(color.G, pow),
+						math.pow(color.B, pow)
+					)
+				end
+
+				local function lerpColor(colorA, colorB, frac, gamma)
+					gamma = gamma or 2.0
+					local CA = powColor3(colorA, gamma)
+					local CB = powColor3(colorB, gamma)
+					return powColor3(CA:Lerp(CB, frac), 1/gamma)
+				end
+
+				local firstTimeEnabling = true
+				local function listenToHealth(character)
+					if not character then
+						return
+					end
+					local humanoid = character:WaitForChild("Humanoid", 10)
+					if not humanoid then
+						return
+					end
+
+					local function updateHealthBar()
+						local realHealthbarEnabled = starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.Health)
+						local healthInterval = humanoid.Health / humanoid.MaxHealth
+						if healthInterval == 1 or IconController.healthbarDisabled or (firstTimeEnabling and realHealthbarEnabled == false) then
+							if icon.enabled then
+								icon:setEnabled(false)
+							end
+							return
+						elseif healthInterval < 1 then
+							if not icon.enabled then
+								icon:setEnabled(true)
+							end
+							firstTimeEnabling = false
+							if realHealthbarEnabled then
+								starterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
+							end
+						end
+						local startInterval = 0.9
+						local endInterval = 0.1
+						local m = 1/(startInterval - endInterval)
+						local c = -m*endInterval
+						local colorIntervalAbsolute = (m*healthInterval) + c
+						local colorInterval = (colorIntervalAbsolute > 1 and 1) or (colorIntervalAbsolute < 0 and 0) or colorIntervalAbsolute
+						local firstColor = (healthInterval > 0.5 and START_HEALTHBAR_COLOR) or MID_HEALTHBAR_COLOR
+						local lastColor = (healthInterval > 0.5 and MID_HEALTHBAR_COLOR) or END_HEALTHBAR_COLOR
+						local doubleSubtractor = (1-colorInterval)*2
+						local modifiedColorInterval = (healthInterval > 0.5 and (1-doubleSubtractor)) or (2-doubleSubtractor)
+						local newHealthFillColor = lerpColor(lastColor, firstColor, modifiedColorInterval)
+						local newHealthFillSize = UDim2.new(healthInterval, 0, 1, 0)
+						healthBar.BackgroundColor3 = newHealthFillColor
+						healthBar.Size = newHealthFillSize
+					end
+
+					humanoid.HealthChanged:Connect(updateHealthBar)
+					IconController.healthbarDisabledSignal:Connect(updateHealthBar)
+					updateHealthBar()
+				end
+				localPlayer.CharacterAdded:Connect(function(character)
+					listenToHealth(character)
+				end)
+				task.spawn(listenToHealth, localPlayer.Character)
+			end)
+	end)
+end
+
 
 
 -- BEHAVIOUR
@@ -881,13 +1080,14 @@ coroutine.wrap(function()
 	runService.Heartbeat:Wait() -- This is required to prevent an infinite recursion
 	local Icon = require(script.Parent)
 	local controllerOptionIcon = Icon.new()
+		:setProperty("internalIcon", true)
 		:setName("_TopbarControllerOption")
 		:setOrder(100)
 		:setImage("rbxassetid://5278150942")
 		:setRight()
 		:setEnabled(false)
 		:setTip("Controller mode")
-	controllerOptionIcon.deselectWhenOtherIconSelected = false
+		:setProperty("deselectWhenOtherIconSelected", false)
 
 	-- This decides what controller widgets and displays to show based upon their connected inputs
 	-- For example, if on PC with a controller, give the player the option to enable controller mode with a toggle
@@ -945,6 +1145,7 @@ coroutine.wrap(function()
 		if alignment ~= "mid" then
 			local overflowName = "_overflowIcon-"..alignment
 			local overflowIcon = Icon.new()
+				:setProperty("internalIcon", true)
 				:setImage(6069276526)
 				:setName(overflowName)
 				:setEnabled(false)
@@ -966,6 +1167,35 @@ coroutine.wrap(function()
 			}
 		end
 	end
+
+	-- This checks if voice chat is enabled
+	local success, enabled = pcall(function() return voiceChatService:IsVoiceEnabledForUserIdAsync(localPlayer.UserId) end)
+	if success and enabled then
+		isVoiceChatEnabled = true
+		IconController.updateTopbar()
+	end
+
+	-- Credit
+	if not isStudio then
+		local ownerId = game.CreatorId
+		local groupService = game:GetService("GroupService")
+		if game.CreatorType == Enum.CreatorType.Group then
+			local success, ownerInfo = pcall(function() return groupService:GetGroupInfoAsync(game.CreatorId).Owner end)
+			if success then
+				ownerId = ownerInfo.Id
+			end
+		end
+		local version = require(script.Parent.VERSION)
+		if localPlayer.UserId ~= ownerId then
+			local marketplaceService = game:GetService("MarketplaceService")
+			local success, placeInfo = pcall(function() return marketplaceService:GetProductInfo(game.PlaceId) end)
+			if success and placeInfo then
+				local gameName = placeInfo.Name
+				print(("\n\n\n⚽ %s uses TopbarPlus %s\n🍍 TopbarPlus was developed by ForeverHD and the Nanoblox Team\n🚀 You can learn more and take a free copy by searching for 'TopbarPlus' on the DevForum\n\n"):format(gameName, version))
+			end
+		end
+	end
+
 end)()
 
 -- Mimic the enabling of the topbar when StarterGui:SetCore("TopbarEnabled", state) is called
@@ -1000,21 +1230,23 @@ end)()
 
 -- Mimic roblox menu when opened and closed
 guiService.MenuClosed:Connect(function()
+	if VRService.VREnabled then
+		return
+	end
 	menuOpen = false
 	if not IconController.controllerModeEnabled then
 		IconController.setTopbarEnabled(IconController.topbarEnabled,false)
 	end
 end)
 guiService.MenuOpened:Connect(function()
+	if VRService.VREnabled then
+		return
+	end
 	menuOpen = true
 	IconController.setTopbarEnabled(false,false)
 end)
 
--- Add icons to an overflow if they overlap the screen bounds or other icons
-workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
-	IconController.updateTopbar()
-end)
-
+bindCamera()
 
 
 return IconController
